@@ -973,4 +973,5 @@ config TOUCHSCREEN_FOCALTECH_FT5X06
 
 source "drivers/input/touchscreen/synaptics_dsx/Kconfig"
 source "drivers/input/touchscreen/silead/Kconfig"
+source "drivers/input/touchscreen/ft5x46/Kconfig"
 endif

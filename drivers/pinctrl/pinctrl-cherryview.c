@@ -1,6 +1,7 @@
 /* gpio-cherryview.c Cherrytrail platform GPIO driver
  *
  * Copyright (c) 2013,  Intel Corporation.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -67,6 +68,8 @@
 /* When Pad Cfg is locked, driver can only change GPIOTXState or GPIORXState */
 #define PAD_CFG_LOCKED(offset)	(chv_readl(chv_gpio_reg(&cg->chip,	\
 				offset, CV_PADCTRL1_REG)) & CV_CFG_LOCK_MASK)
+
+#define CV_GPIO_NORTH_CTRL_BASE	(0xFED88000)
 
 /*northeast pin list*/
 enum {
@@ -722,7 +725,11 @@ struct chv_gpio {
 	struct irq_domain	*domain;
 	int			intr_lines[MAX_INTR_LINE_NUM];
 	char			*community_name;
+<<<<<<< HEAD
 	int			print_wakeup;
+=======
+	int		print_wakeup;
+>>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 };
 struct chv_gpio *g_cg;
 
@@ -1269,11 +1276,38 @@ static struct irq_chip chv_irqchip = {
 	.irq_shutdown	= chv_irq_shutdown,
 };
 
+static u32 chv_gpio_cfg_read(int gpio, int ctrl_reg)
+{
+	int offset;
+	struct chv_gpio *cg;
+	void __iomem *reg;
+	unsigned long flags;
+	struct gpio_chip *chip;
+	u32 value;
+
+	chip = gpiod_to_chip(gpio_to_desc(gpio));
+	if (!chip) {
+		pr_err("%s Can't get gpio_chip for gpio-%d\n",
+			__func__, gpio);
+		return 0;
+	}
+
+	cg = to_chv_priv(chip);
+	offset = gpio - chip->base;
+	reg = chv_gpio_reg(&cg->chip, offset, ctrl_reg);
+
+	spin_lock_irqsave(&cg->lock, flags);
+	value = chv_readl(reg);
+	spin_unlock_irqrestore(&cg->lock, flags);
+
+	return value;
+}
+
 /*there is requirement to access the inv settings on ctrl1 register*
 **	gpio : gpio number					**
 **	inv : inv settings bits					**
 **	en: 1 for enable inv, 0 for disable inv			**/
-void chv_gpio_cfg_inv(int gpio, int inv, int en)
+void chv_gpio_cfg(int gpio, int inv, int en, int mask, int ctrl_reg)
 {
 	int offset;
 	struct chv_gpio *cg;
@@ -1283,7 +1317,7 @@ void chv_gpio_cfg_inv(int gpio, int inv, int en)
 	u32 value;
 	u32 set;
 
-	set = __ffs(inv & CV_GPIO_INV_MASK);
+	set = __ffs(inv & mask);
 	if (!set)
 		return;
 
@@ -1293,7 +1327,7 @@ void chv_gpio_cfg_inv(int gpio, int inv, int en)
 
 	cg = to_chv_priv(chip);
 	offset = gpio - chip->base;
-	reg = chv_gpio_reg(&cg->chip, offset, CV_PADCTRL1_REG);
+	reg = chv_gpio_reg(&cg->chip, offset, ctrl_reg);
 
 	spin_lock_irqsave(&cg->lock, flags);
 	value = chv_readl(reg);
@@ -1305,7 +1339,96 @@ void chv_gpio_cfg_inv(int gpio, int inv, int en)
 
 	spin_unlock_irqrestore(&cg->lock, flags);
 }
+
+void chv_gpio_cfg_inv(int gpio, int inv, int en)
+{
+	chv_gpio_cfg(gpio, inv, en, CV_GPIO_INV_MASK, CV_PADCTRL1_REG);
+}
 EXPORT_SYMBOL_GPL(chv_gpio_cfg_inv);
+
+static void chv_gpio_cfg_ctrl0(int gpio, int inv, int en)
+{
+	chv_gpio_cfg(gpio, inv, en,
+		CV_GPIO_EN|CV_GPIO_TX_STAT|CV_GPIO_RX_STAT, CV_PADCTRL0_REG);
+}
+
+#define UART_JACK_SW_GPIO 357
+#define UART0_RX_GPIO 403
+#define UART0_TX_GPIO 408
+
+int chv_enable_jack(int enable)
+{
+	/* enable/disable jack */
+	chv_gpio_cfg_ctrl0(UART_JACK_SW_GPIO, CV_GPIO_TX_STAT,
+		enable ? 0 : 1);
+
+	/* Set UART0_DATAOUT */
+	chv_gpio_cfg_ctrl0(UART0_TX_GPIO, CV_GPIO_EN, enable);
+	if (enable) {
+		/* set to low */
+		chv_gpio_cfg_ctrl0(UART0_TX_GPIO, CV_GPIO_TX_STAT, 0);
+	}
+	/* set UART0_DATAIN */
+	chv_gpio_cfg_ctrl0(UART0_TX_GPIO, CV_GPIO_EN, enable);
+	if (enable) {
+		/* set to low */
+		chv_gpio_cfg_ctrl0(UART0_TX_GPIO, CV_GPIO_TX_STAT, 0);
+	}
+
+	pr_debug("%s %x, %x, %x\n", __func__,
+		chv_gpio_cfg_read(UART_JACK_SW_GPIO, CV_PADCTRL0_REG),
+		chv_gpio_cfg_read(UART0_TX_GPIO, CV_PADCTRL0_REG),
+		chv_gpio_cfg_read(UART0_RX_GPIO, CV_PADCTRL0_REG));
+	return 0;
+}
+EXPORT_SYMBOL_GPL(chv_enable_jack);
+
+static ssize_t enable_jack_store(struct class *class,
+				struct class_attribute *attr,
+				const char *buf, size_t len)
+{
+	long enable;
+	int ret;
+
+	ret = kstrtol(buf, 0, &enable);
+	if (ret < 0)
+		return ret;
+
+	if ((enable != 1) && (enable != 0)) {
+		pr_warn("%s : Invalid input: %ld\n", __func__, enable);
+		return -EINVAL;
+	}
+
+	ret = chv_enable_jack(enable);
+
+	if (ret < 0)
+		return ret;
+
+	return len;
+}
+
+ssize_t enable_jack_show(struct class *class, struct class_attribute *attr,
+	char *buf)
+{
+	u32 val;
+
+	val = chv_gpio_cfg_read(UART_JACK_SW_GPIO, CV_PADCTRL0_REG);
+	pr_debug("%s GPIO %d ctrl0: 0x%x", __func__, UART_JACK_SW_GPIO, val);
+	return sprintf(buf, "%s\n",
+		(val&CV_GPIO_TX_STAT) ? "disable" : "enable");
+}
+
+static struct class_attribute jack_attrs[] = {
+	__ATTR_RW(enable_jack),
+	__ATTR_NULL,
+};
+static struct class jack_class = {
+	.name =		"uart_jack",
+	.owner =	THIS_MODULE,
+
+	.class_attrs =	jack_attrs,
+};
+
 
 static void chv_gpio_irq_dispatch(struct chv_gpio *cg)
 {
@@ -1334,8 +1457,13 @@ static void chv_gpio_irq_dispatch(struct chv_gpio *cg)
 			irq = irq_find_mapping(cg->domain, offset);
 			if (cg->print_wakeup) {
 				pr_info("chv_gpio: irq[%d]"
+<<<<<<< HEAD
 					" might wake up system!\n",
 					irq);
+=======
+						" might wake up system!\n",
+						irq);
+>>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 			}
 
 			generic_handle_irq(irq);
@@ -1385,6 +1513,7 @@ static const struct irq_domain_ops chv_gpio_irq_ops = {
 	.map = chv_gpio_irq_map,
 };
 
+<<<<<<< HEAD
 #ifdef CONFIG_ACPI
 #define GPIO_ACPI_MMIO_ACCESS_START		((acpi_adr_space_type) 0x91)
 
@@ -1417,6 +1546,8 @@ chv_gpio_mmio_access_handler(u32 function, acpi_physical_address address,
 	return AE_OK;
 }
 
+=======
+>>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 #ifdef CONFIG_PM_SLEEP
 static int chv_gpio_suspend_noirq(struct device *dev)
 {
@@ -1433,6 +1564,7 @@ static int chv_gpio_resume_early(struct device *dev)
 }
 #endif
 
+<<<<<<< HEAD
 static int chv_gpio_acpi_request_mmio_access(struct chv_gpio *cg, int id)
 {
 	struct acpi_device *adev = ACPI_COMPANION(&cg->pdev->dev);
@@ -1462,6 +1594,8 @@ static int chv_gpio_acpi_request_mmio_access(struct chv_gpio *cg, int id)
 }
 #endif
 
+=======
+>>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 static int
 chv_gpio_pnp_probe(struct pnp_dev *pdev, const struct pnp_device_id *id)
 {
@@ -1562,6 +1696,7 @@ chv_gpio_pnp_probe(struct pnp_dev *pdev, const struct pnp_device_id *id)
 		irq_set_chained_handler(irq_rc->start, chv_gpio_irq_handler);
 	}
 
+<<<<<<< HEAD
 #ifdef CONFIG_ACPI
 	chv_gpio_acpi_request_mmio_access(cg, bank_id);
 #endif
@@ -1570,6 +1705,19 @@ chv_gpio_pnp_probe(struct pnp_dev *pdev, const struct pnp_device_id *id)
 	g_cg = cg;
 	dev_set_drvdata(&pdev->dev, cg);
 
+=======
+	/* reigster class */
+	if (mem_rc->start == CV_GPIO_NORTH_CTRL_BASE) {
+		ret = class_register(&jack_class);
+		if (ret < 0)
+			dev_err(dev, "create jack_class failed!\n");
+		dev_info(dev, "Created jack_class.\n");
+	}
+
+	dev_info(dev, "Cherryview GPIO %s probed. Base=%x\n",
+		pdev->name, mem_rc->start);
+
+>>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 	dev_set_drvdata(&pdev->dev, cg);
 	return 0;
 err:
@@ -1597,7 +1745,11 @@ static struct pnp_driver chv_gpio_pnp_driver = {
 	.name		= "chv_gpio",
 	.id_table	= chv_gpio_pnp_match,
 	.probe          = chv_gpio_pnp_probe,
+<<<<<<< HEAD
 	.driver		= {
+=======
+	.driver     = {
+>>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 		.name = "chv_gpio",
 		.pm = &chv_gpio_pm,
 	},
