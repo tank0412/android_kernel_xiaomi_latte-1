@@ -68,11 +68,11 @@ static int intel_task_panic_hndl(struct notifier_block *n,
 		return NOTIFY_OK;
 	}
 
-	console_suspend_slow();
+	//console_suspend_slow();
 	pr_info(" --- tasks dumper [BEGIN] ---\n");
 	show_state_filter(0);
 	pr_info(" --- tasks dumper [END] ---\n");
-	console_restore_slow();
+	//console_restore_slow();
 
        /* maybe NOTIFY_STOP_MASK ....*/
 	return NOTIFY_OK;
