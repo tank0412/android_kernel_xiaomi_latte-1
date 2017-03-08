@@ -38,24 +38,24 @@ static int hid_sensor_data_rdy_trigger_set_state(struct iio_trigger *trig,
 	if (state) {
 		if (sensor_hub_device_open(st->hsdev))
 			return -EIO;
-		state_val = hid_sensor_get_usage_index(st->hsdev,
-			st->power_state.report_id,
-			st->power_state.index,
-			HID_USAGE_SENSOR_PROP_POWER_STATE_D0_FULL_POWER_ENUM);
-		report_val = hid_sensor_get_usage_index(st->hsdev,
-			st->report_state.report_id,
-			st->report_state.index,
-			HID_USAGE_SENSOR_PROP_REPORTING_STATE_ALL_EVENTS_ENUM);
+		//state_val = hid_sensor_get_usage_index(st->hsdev,
+			//st->power_state.report_id,
+			//st->power_state.index,
+			//HID_USAGE_SENSOR_PROP_POWER_STATE_D0_FULL_POWER_ENUM);
+		//report_val = hid_sensor_get_usage_index(st->hsdev,
+			//st->report_state.report_id,
+			//st->report_state.index,
+			//HID_USAGE_SENSOR_PROP_REPORTING_STATE_ALL_EVENTS_ENUM);
 	} else {
 		sensor_hub_device_close(st->hsdev);
-		state_val = hid_sensor_get_usage_index(st->hsdev,
-			st->power_state.report_id,
-			st->power_state.index,
-			HID_USAGE_SENSOR_PROP_POWER_STATE_D4_POWER_OFF_ENUM);
-		report_val = hid_sensor_get_usage_index(st->hsdev,
-			st->report_state.report_id,
-			st->report_state.index,
-			HID_USAGE_SENSOR_PROP_REPORTING_STATE_NO_EVENTS_ENUM);
+		//state_val = hid_sensor_get_usage_index(st->hsdev,
+		//	st->power_state.report_id,
+		//	st->power_state.index,
+			//HID_USAGE_SENSOR_PROP_POWER_STATE_D4_POWER_OFF_ENUM);
+		//report_val = hid_sensor_get_usage_index(st->hsdev,
+		//	st->report_state.report_id,
+		//	st->report_state.index,
+		//	HID_USAGE_SENSOR_PROP_REPORTING_STATE_NO_EVENTS_ENUM);
 	}
 	st->data_ready = state;
 

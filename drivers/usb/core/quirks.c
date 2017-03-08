@@ -264,9 +264,9 @@ static u32 __usb_detect_quirks(struct usb_device *udev,
 		if (!usb_match_device(udev, id))
 			continue;
 
-		if ((id->match_flags & USB_DEVICE_ID_MATCH_INT_INFO) &&
-		    !usb_match_any_interface(udev, id))
-			continue;
+		//if ((id->match_flags & USB_DEVICE_ID_MATCH_INT_INFO) &&
+		   // !usb_match_any_interface(udev, id))
+			//continue;
 
 		quirks |= (u32)(id->driver_info);
 	}

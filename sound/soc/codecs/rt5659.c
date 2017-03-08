@@ -4447,9 +4447,9 @@ static int rt5659_i2c_probe(struct i2c_client *i2c,
 	#define CODEC_RESET_GPIO 387
 
 #ifdef CONFIG_DEBUG_HEADSET_UART
-	chv_enable_jack(0);
+	//chv_enable_jack(0);
 #else
-	chv_enable_jack(1);
+	//chv_enable_jack(1);
 #endif
 
 	ret = devm_gpio_request_one(&i2c->dev,

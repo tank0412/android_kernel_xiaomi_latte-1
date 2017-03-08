@@ -2123,7 +2123,7 @@ void usb_disconnect(struct usb_device **pdev)
 		sysfs_remove_link(&udev->dev.kobj, "port");
 		sysfs_remove_link(&port_dev->dev.kobj, "device");
 
-		hub_intel_ssic_check_block_runtime(udev);
+		//hub_intel_ssic_check_block_runtime(udev);
 
 		if (!port_dev->did_runtime_put)
 			pm_runtime_put(&port_dev->dev);
@@ -2442,7 +2442,7 @@ int usb_new_device(struct usb_device *udev)
 		}
 
 		pm_runtime_get_sync(&port_dev->dev);
-		hub_intel_ssic_check_unblock_runtime(udev);
+		//hub_intel_ssic_check_unblock_runtime(udev);
 	}
 
 	(void) usb_create_ep_devs(&udev->dev, &udev->ep0, udev);
@@ -4522,7 +4522,8 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	}
 
 	usb_detect_quirks(udev);
-
+      
+       /*
 	if (udev->wusb == 0 && le16_to_cpu(udev->descriptor.bcdUSB) >= 0x0201) {
 		retval = usb_get_bos_descriptor(udev);
 		if (!retval) {
@@ -4530,6 +4531,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 			usb_set_lpm_parameters(udev);
 		}
 	}
+*/
 
 	retval = 0;
 	/* notify HCD that we have a device connected and addressed */

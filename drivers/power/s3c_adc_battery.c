@@ -256,24 +256,24 @@ static void s3c_adc_bat_work(struct work_struct *work)
 	if (is_plugged != was_plugged) {
 		was_plugged = is_plugged;
 		if (is_plugged) {
-			if (bat->pdata->enable_charger)
-				bat->pdata->enable_charger();
+			//if (bat->pdata->enable_charger)
+				//bat->pdata->enable_charger();
 			bat->status = POWER_SUPPLY_STATUS_CHARGING;
 		} else {
-			if (bat->pdata->disable_charger)
-				bat->pdata->disable_charger();
+			//if (bat->pdata->disable_charger)
+			//	bat->pdata->disable_charger();
 			bat->status = POWER_SUPPLY_STATUS_DISCHARGING;
 		}
 	} else {
 		if ((bat->pdata->gpio_charge_finished >= 0) && is_plugged) {
 			is_charged = charge_finished(&main_bat);
 			if (is_charged) {
-				if (bat->pdata->disable_charger)
-					bat->pdata->disable_charger();
+				//if (bat->pdata->disable_charger)
+					//bat->pdata->disable_charger();
 				bat->status = POWER_SUPPLY_STATUS_FULL;
 			} else {
-				if (bat->pdata->enable_charger)
-					bat->pdata->enable_charger();
+				//if (bat->pdata->enable_charger)
+					//bat->pdata->enable_charger();
 				bat->status = POWER_SUPPLY_STATUS_CHARGING;
 			}
 		}
@@ -403,7 +403,7 @@ static int s3c_adc_bat_suspend(struct platform_device *pdev,
 				gpio_to_irq(pdata->gpio_charge_finished));
 		else {
 			disable_irq(gpio_to_irq(pdata->gpio_charge_finished));
-			main_bat.pdata->disable_charger();
+			//main_bat.pdata->disable_charger();
 		}
 	}
 

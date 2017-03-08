@@ -906,7 +906,7 @@ static int select_chrgr_cable(struct device *dev, void *data)
 	if (!max_ma_cable) {
 		if ((IS_CHARGER_ENABLED(psy) || IS_CHARGING_ENABLED(psy))) {
 			disable_charging(psy);
-			disable_charger(psy);
+			//disable_charger(psy);
 		}
 		set_cc(psy, 0);
 		set_cv(psy, 0);
@@ -946,7 +946,7 @@ static int select_chrgr_cable(struct device *dev, void *data)
 			IS_CABLE_READY_TO_SUPPLY(max_ma_cable->chrg_evt)) {
 		struct psy_batt_thresholds bat_thresh;
 		memset(&bat_thresh, 0, sizeof(bat_thresh));
-		enable_charger(psy);
+		//enable_charger(psy);
 
 		update_charger_online(psy);
 
@@ -960,7 +960,7 @@ static int select_chrgr_cable(struct device *dev, void *data)
 
 	} else {
 		set_inlmt(psy, max_ma_cable->ma);
-		disable_charger(psy);
+		//disable_charger(psy);
 		update_charger_online(psy);
 	}
 
@@ -994,7 +994,7 @@ int psy_charger_throttle_charger(struct power_supply *psy,
 	{
 		case PSY_THROTTLE_DISABLE_CHARGER:
 			SET_MAX_CC(psy, 0);
-			disable_charger(psy);
+			//disable_charger(psy);
 			break;
 		case PSY_THROTTLE_DISABLE_CHARGING:
 			SET_MAX_CC(psy, 0);

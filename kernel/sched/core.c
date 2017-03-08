@@ -4506,7 +4506,7 @@ void show_state_filter(unsigned long state_filter)
 
 #ifdef CONFIG_SCHED_DEBUG
 	if (sched_debug_enabled)
-		//sysrq_sched_debug_show();
+		sysrq_sched_debug_show();
 #endif
 	rcu_read_unlock();
 	/*
@@ -5074,7 +5074,6 @@ migration_call(struct notifier_block *nfb, unsigned long action, void *hcpu)
 
 	case CPU_UP_PREPARE:
 		rq->calc_load_update = calc_load_update;
-		account_reset_rq(rq);
 		break;
 
 	case CPU_ONLINE:
