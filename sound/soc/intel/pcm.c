@@ -3,7 +3,6 @@
  *  pcm.c - Intel MID Platform driver file implementing PCM functionality
  *
  *  Copyright (C) 2010-2013 Intel Corp
- *  Copyright (C) 2016 XiaoMi, Inc.
  *  Author: Vinod Koul <vinod.koul@intel.com>
  *  Author: Harsha Priya <priya.harsha@intel.com>
  *  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -626,7 +625,7 @@ static struct snd_soc_dai_driver sst_platform_dai[] = {
 	.ops = &sst_media_dai_ops,
 	.playback = {
 		.stream_name = "Headset Playback",
-		.channels_min = SST_MONO,
+		.channels_min = SST_STEREO,
 		.channels_max = SST_STEREO,
 		.rates = SNDRV_PCM_RATE_44100|SNDRV_PCM_RATE_48000,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE,
@@ -923,7 +922,6 @@ static int sst_soc_probe(struct snd_soc_platform *platform)
 
 #ifdef CONFIG_SST_DPCM
 	sst = snd_soc_platform_get_drvdata(platform);
-	sst->fw = NULL;
 	if (dpcm_enable == 1) {
 		if (sst->pdata->dfw_enable == 1)
 			ret = sst_dsp_init_v2_dpcm_dfw(platform);
@@ -938,14 +936,7 @@ static int sst_soc_probe(struct snd_soc_platform *platform)
 
 static int sst_soc_remove(struct snd_soc_platform *platform)
 {
-	struct sst_data *sst;
-
 	pr_debug("%s called\n", __func__);
-	sst = snd_soc_platform_get_drvdata(platform);
-	if (NULL != sst->fw) {
-		release_firmware(sst->fw);
-		sst->fw = NULL;
-	}
 	return 0;
 }
 

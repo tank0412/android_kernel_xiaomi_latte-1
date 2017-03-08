@@ -2,7 +2,6 @@
  * H/W layer of HECI provider device (ISS)
  *
  * Copyright (c) 2014-2015, Intel Corporation.
- * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -267,11 +266,7 @@ int write_ipc_from_queue(struct heci_device *dev)
 	ISH_DBG_PRINT(KERN_ALERT "%s(): +++\n", __func__);
 
 	if (dev->dev_state == HECI_DEV_DISABLED)
-<<<<<<< HEAD:drivers/misc/intel-ish/hw-ish.c
 		return	-EINVAL;
-=======
-		return -EINVAL;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hw-ish.c
 
 	spin_lock_irqsave(&dev->out_ipc_spinlock, out_ipc_flags);
 	if (out_ipc_locked) {
@@ -310,13 +305,8 @@ int write_ipc_from_queue(struct heci_device *dev)
 	if (IPC_HEADER_GET_PROTOCOL(doorbell_val) == IPC_PROTOCOL_MNG &&
 		IPC_HEADER_GET_MNG_CMD(doorbell_val) == MNG_SYNC_FW_CLOCK) {
 
-<<<<<<< HEAD:drivers/misc/intel-ish/hw-ish.c
 		struct timespec	ts;
 		uint64_t	usec;
-=======
-		struct timespec ts;
-		uint64_t usec;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hw-ish.c
 
 		get_monotonic_boottime(&ts);
 		usec = (uint64_t)ts.tv_sec * 1000000 +
@@ -504,25 +494,6 @@ static void	sync_fw_clock(struct heci_device *dev)
 }
 
 
-<<<<<<< HEAD:drivers/misc/intel-ish/hw-ish.c
-=======
-static void sync_fw_clock(struct heci_device *dev)
-{
-	static unsigned long prev_sync;
-	struct timespec ts;
-	uint64_t usec;
-
-	if (prev_sync && jiffies - prev_sync < 20 * HZ)
-		return;
-
-	prev_sync = jiffies;
-	get_monotonic_boottime(&ts);
-	usec = (uint64_t)ts.tv_sec * 1000000 + (uint64_t)ts.tv_nsec / 1000;
-	ipc_send_mng_msg(dev, MNG_SYNC_FW_CLOCK, &usec, sizeof(uint64_t));
-}
-
-
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hw-ish.c
 /*
  *	Receive and process IPC management messages
  *
@@ -612,11 +583,7 @@ irqreturn_t ish_irq_handler(int irq, void *dev_id)
 
 	/* CHECKME: double check this */
 	if (dev->dev_state == HECI_DEV_DISABLED)
-<<<<<<< HEAD:drivers/misc/intel-ish/hw-ish.c
 		return	IRQ_HANDLED;
-=======
-		return IRQ_HANDLED;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hw-ish.c
 
 	ish_intr_disable(dev);
 
@@ -774,7 +741,6 @@ static int ish_hw_reset(struct heci_device *dev)
 {
 	struct pci_dev *pdev = dev->pdev;
 	struct ish_hw *hw = to_ish_hw(dev);
-<<<<<<< HEAD:drivers/misc/intel-ish/hw-ish.c
 	int	rv;
 	u16 csr;
 
@@ -783,16 +749,6 @@ static int ish_hw_reset(struct heci_device *dev)
 
 	if (!pdev)
 		return	-ENODEV;
-=======
-	int rv;
-	u16 csr;
-
-#define MAX_DMA_DELAY	20
-	unsigned dma_delay;
-
-	if (!pdev)
-		return -ENODEV;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hw-ish.c
 
 	rv = pci_reset_function(pdev);
 	if (!rv)
@@ -800,35 +756,22 @@ static int ish_hw_reset(struct heci_device *dev)
 
 	if (!pdev->pm_cap) {
 		dev_err(&pdev->dev, "Can't reset - no PM caps\n");
-<<<<<<< HEAD:drivers/misc/intel-ish/hw-ish.c
 		return	-EINVAL;
-=======
-		return -EINVAL;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hw-ish.c
 	}
 
 	/* Now trigger reset to FW */
 	writel(0, hw->mem_addr + IPC_REG_ISH_RMP2);
 
 	for (dma_delay = 0; dma_delay < MAX_DMA_DELAY &&
-<<<<<<< HEAD:drivers/misc/intel-ish/hw-ish.c
 			ish_reg_read(dev, IPC_REG_ISH_HOST_FWSTS) &
 				(IPC_ISH_IN_DMA);
 			dma_delay += 5)
-=======
-			ish_reg_read(dev, IPC_REG_ISH_HOST_FWSTS) & (IPC_ISH_IN_DMA);
-			dma_delay += 5);
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hw-ish.c
 		mdelay(5);
 
 	if (dma_delay >= MAX_DMA_DELAY) {
 		dev_err(&pdev->dev,
 			"Can't reset - stuck with DMA in-progress\n");
-<<<<<<< HEAD:drivers/misc/intel-ish/hw-ish.c
 		return	-EBUSY;
-=======
-		return -EBUSY;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hw-ish.c
 	}
 
 	pci_read_config_word(pdev, pdev->pm_cap + PCI_PM_CTRL, &csr);
@@ -849,11 +792,7 @@ static int ish_hw_reset(struct heci_device *dev)
 	 asleep */
 	writel(IPC_DRBL_BUSY_BIT, hw->mem_addr + IPC_REG_HOST2ISH_DRBL);
 
-<<<<<<< HEAD:drivers/misc/intel-ish/hw-ish.c
 	return	0;
-=======
-	return 0;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hw-ish.c
 }
 
 
@@ -1029,17 +968,8 @@ struct heci_device *ish_dev_init(struct pci_dev *pdev)
 }
 
 
-<<<<<<< HEAD:drivers/misc/intel-ish/hw-ish.c
 void	heci_device_disable(struct heci_device *dev)
 {
-=======
-void heci_device_disable(struct heci_device *dev)
-{
-	unsigned long flags;
-	struct wr_msg_ctl_info *ipc_link;
-	struct heci_cl *cl;
-
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hw-ish.c
 	dev->dev_state = HECI_DEV_DISABLED;
 	ish_clr_host_rdy(dev);
 	ish_intr_disable(dev);

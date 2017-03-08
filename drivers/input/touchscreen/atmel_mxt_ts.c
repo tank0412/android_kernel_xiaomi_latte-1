@@ -708,200 +708,10 @@ struct mxt_data {
 	u8 T100_reportid_max;
 	u8 T109_reportid;
 
-<<<<<<< HEAD
-	/* for fw update in bootloader */
-	struct completion bl_completion;
-
-	/* for reset handling */
-	struct completion reset_completion;
-
-	/* for config update handling */
-	struct completion crc_completion;
-
-	/* Indicates whether device is in suspend */
-	bool suspended;
-
-	/* Indicates whether device is updating configuration */
-	bool updating_config;
-
-	bool late_start;
-	/*debugfs interfaces for factory test*/
-#ifdef CONFIG_DEBUG_FS
-	char *debugfs_name;
-	struct dentry *debugfs_root;
-	u32 present;
-	u32 correct;
-	u32 reset;
-	u32 irqcnt;
-	u8 *buf_raw_data;
-#endif
-#ifdef CONFIG_PM_SLEEP
-	bool power_hal_want_suspend;
-	struct mutex power_hal_lock;
-#endif
-	/*chip initilized status*/
-	bool initialized;
-	int alloc_pdata;
-};
-#ifdef CONFIG_PM_SLEEP
-static void mxt_power_hal_suspend(struct device *dev);
-static void mxt_power_hal_resume(struct device *dev);
-static int mxt_power_hal_suspend_init(struct device *dev);
-static void mxt_power_hal_suspend_destroy(struct device *dev);
-static ssize_t mxt_power_hal_suspend_show(struct device *dev,
-		struct device_attribute *attr, char *buf);
-static ssize_t mxt_power_hal_suspend_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count);
-#endif
-
-static int mxt_initialize(struct mxt_data *data);
-static int mxt_load_fw(struct device *dev);
-static int mxt_debugfs_create(struct mxt_data *data);
-
-static size_t mxt_obj_size(const struct mxt_object *obj)
-{
-	return obj->size_minus_one + 1;
-}
-
-static size_t mxt_obj_instances(const struct mxt_object *obj)
-{
-	return obj->instances_minus_one + 1;
-}
-
-static bool mxt_object_readable(unsigned int type)
-{
-	switch (type) {
-	case MXT_GEN_MESSAGE_T5:
-	case MXT_GEN_COMMAND_T6:
-	case MXT_GEN_POWER_T7:
-	case MXT_GEN_ACQUIRE_T8:
-	case MXT_GEN_DATASOURCE_T53:
-	case MXT_TOUCH_MULTI_T9:
-	case MXT_TOUCH_KEYARRAY_T15:
-	case MXT_TOUCH_PROXIMITY_T23:
-	case MXT_TOUCH_PROXKEY_T52:
-	case MXT_PROCI_GRIPFACE_T20:
-	case MXT_PROCG_NOISE_T22:
-	case MXT_PROCI_ONETOUCH_T24:
-	case MXT_PROCI_TWOTOUCH_T27:
-	case MXT_PROCI_GRIP_T40:
-	case MXT_PROCI_PALM_T41:
-	case MXT_PROCI_TOUCHSUPPRESSION_T42:
-	case MXT_PROCI_STYLUS_T47:
-	case MXT_PROCG_NOISESUPPRESSION_T48:
-	case MXT_SPT_COMMSCONFIG_T18:
-	case MXT_SPT_GPIOPWM_T19:
-	case MXT_SPT_SELFTEST_T25:
-	case MXT_SPT_CTECONFIG_T28:
-	case MXT_SPT_USERDATA_T38:
-	case MXT_SPT_DIGITIZER_T43:
-	case MXT_SPT_MESSAGECOUNT_T44:
-	case MXT_SPT_CTECONFIG_T46:
-	case MXT_TOUCH_MULTITOUCHSCREEN_T100:
-		return true;
-	default:
-		return false;
-	}
-}
-
-static void mxt_dump_message(struct mxt_data *data, u8 *message)
-{
-	dev_dbg(&data->client->dev, "MXT MSG: %*ph\n",
-		       data->T5_msg_size, message);
-}
-
-static void mxt_debug_msg_enable(struct mxt_data *data)
-{
-	struct device *dev = &data->client->dev;
-
-	if (data->debug_v2_enabled)
-		return;
-
-	mutex_lock(&data->debug_msg_lock);
-
-	data->debug_msg_data = kcalloc(DEBUG_MSG_MAX,
-				data->T5_msg_size, GFP_KERNEL);
-	if (!data->debug_msg_data) {
-		dev_err(&data->client->dev, "Failed to allocate buffer\n");
-		return;
-	}
-
-	data->debug_v2_enabled = true;
-	mutex_unlock(&data->debug_msg_lock);
-
-	dev_info(dev, "Enabled message output\n");
-}
-
-static void mxt_debug_msg_disable(struct mxt_data *data)
-{
-	struct device *dev = &data->client->dev;
-
-	if (!data->debug_v2_enabled)
-		return;
-
-	dev_info(dev, "disabling message output\n");
-	data->debug_v2_enabled = false;
-
-	mutex_lock(&data->debug_msg_lock);
-	kfree(data->debug_msg_data);
-	data->debug_msg_data = NULL;
-	data->debug_msg_count = 0;
-	mutex_unlock(&data->debug_msg_lock);
-	dev_info(dev, "Disabled message output\n");
-}
-
-static void mxt_debug_msg_add(struct mxt_data *data, u8 *msg)
-{
-	struct device *dev = &data->client->dev;
-
-	mutex_lock(&data->debug_msg_lock);
-
-	if (!data->debug_msg_data) {
-		dev_err(dev, "No buffer!\n");
-		return;
-	}
-
-	if (data->debug_msg_count < DEBUG_MSG_MAX) {
-		memcpy(data->debug_msg_data +
-		       data->debug_msg_count * data->T5_msg_size,
-		       msg,
-		       data->T5_msg_size);
-		data->debug_msg_count++;
-	} else {
-		dev_dbg(dev, "Discarding %u messages\n", data->debug_msg_count);
-		data->debug_msg_count = 0;
-	}
-
-	mutex_unlock(&data->debug_msg_lock);
-
-	sysfs_notify(&data->client->dev.kobj, NULL, "debug_notify");
-}
-
-static ssize_t mxt_debug_msg_write(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *bin_attr, char *buf, loff_t off,
-	size_t count)
-{
-	return -EIO;
-}
-
-static ssize_t mxt_debug_msg_read(struct file *filp, struct kobject *kobj,
-	struct bin_attribute *bin_attr, char *buf, loff_t off, size_t bytes)
-{
-	struct device *dev = container_of(kobj, struct device, kobj);
-	struct mxt_data *data = dev_get_drvdata(dev);
-	int count;
-	size_t bytes_read;
-
-	if (!data->debug_msg_data) {
-		dev_err(dev, "No buffer!\n");
-		return 0;
-	}
-=======
 #ifdef CONFIG_FB
 	struct notifier_block tp_notif;
 #endif
 };
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 
 static struct mxt_suspend mxt_save[] = {
 	{MXT_GEN_POWER_T7, MXT_POWER_IDLEACQINT,
@@ -4127,22 +3937,6 @@ static ssize_t mxt_stylus_show(struct device *dev,
 static ssize_t mxt_stylus_store(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count)
 {
-<<<<<<< HEAD
-	int error;
-	bool alt_bootloader_addr = false;
-	struct i2c_client *client = data->client;
-	struct mxt_info info = { 0 };
-
-	error = __mxt_read_reg(client, 0, sizeof(struct mxt_info), &info);
-	if (error || !mxt_fw_is_latest(data, &info, fw)) {
-		mxt_force_bootloader(data);
-retry_bootloader:
-		error = mxt_probe_bootloader(data, alt_bootloader_addr);
-		if (error) {
-			if (alt_bootloader_addr) {
-				/* Chip is not in appmode or bootloader mode */
-				goto out;
-=======
 	struct mxt_data *data = dev_get_drvdata(dev);
 	int error, i;
 
@@ -4158,24 +3952,13 @@ retry_bootloader:
 			if (error) {
 				dev_err(dev, "Failed to disable stylus mode!\n");
 				return error;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 			}
 		} else
-<<<<<<< HEAD
-			dev_err(&client->dev, "Firmware update failed\n");
-		return error;
-	}
-
-out:
-	release_firmware(fw);
-	return error;
-=======
 			return -EINVAL;
 
 	}
 
 	return count;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 }
 
 static int mxt_get_diag_data(struct mxt_data *data, char *buf)
@@ -4714,15 +4497,6 @@ static ssize_t mxt_mem_access_write(struct file *filp, struct kobject *kobj,
 
 static DEVICE_ATTR(update_fw, S_IWUSR | S_IRUSR, mxt_update_fw_show, mxt_update_fw_store);
 static DEVICE_ATTR(debug_enable, S_IWUSR | S_IRUSR, mxt_debug_enable_show,
-<<<<<<< HEAD
-		   mxt_debug_enable_store);
-static DEVICE_ATTR(config_csum, S_IRUGO, mxt_config_csum_show, NULL);
-static DEVICE_ATTR(soft_reset, S_IWUSR, NULL, mxt_soft_reset_store);
-#ifdef CONFIG_PM_SLEEP
-static DEVICE_ATTR(power_HAL_suspend, S_IWUSR|S_IWGRP,
-				mxt_power_hal_suspend_show,
-				mxt_power_hal_suspend_store);
-=======
 			mxt_debug_enable_store);
 static DEVICE_ATTR(pause_driver, S_IWUSR | S_IRUSR, mxt_pause_show,
 			mxt_pause_store);
@@ -4743,19 +4517,11 @@ static DEVICE_ATTR(hover_tune, S_IWUSR | S_IRUSR, mxt_hover_tune_show, mxt_hover
 static DEVICE_ATTR(hover_from_flash, S_IWUSR, NULL, mxt_hover_from_flash_store);
 #ifndef CONFIG_PM_SLEEP
 static DEVICE_ATTR(power_HAL_suspend, S_IWUGO | S_IRUGO, NULL, mxt_power_hal_suspend_store);
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 #endif
 
 static struct attribute *mxt_attrs[] = {
 	&dev_attr_update_fw.attr,
 	&dev_attr_debug_enable.attr,
-<<<<<<< HEAD
-	&dev_attr_debug_v2_enable.attr,
-	&dev_attr_debug_notify.attr,
-	&dev_attr_config_csum.attr,
-	&dev_attr_soft_reset.attr,
-#ifdef CONFIG_PM_SLEEP
-=======
 	&dev_attr_pause_driver.attr,
 	&dev_attr_version.attr,
 	&dev_attr_build.attr,
@@ -4772,7 +4538,6 @@ static struct attribute *mxt_attrs[] = {
 	&dev_attr_hover_tune.attr,
 	&dev_attr_hover_from_flash.attr,
 #ifndef CONFIG_PM_SLEEP
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 	&dev_attr_power_HAL_suspend.attr,
 #endif
 	NULL
@@ -4844,14 +4609,8 @@ static void mxt_set_gesture_wake_up(struct mxt_data *data, bool enable)
 
 static void mxt_start(struct mxt_data *data)
 {
-<<<<<<< HEAD
-	if ((!data->suspended && !data->late_start)
-			|| data->in_bootloader)
-		return;
-=======
 	int error;
 	struct device *dev = &data->client->dev;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 
 	mutex_lock(&data->ts_lock);
 
@@ -5417,24 +5176,11 @@ static int mxt_parse_dt(struct device *dev, struct mxt_platform_data *pdata)
 		pdata->default_config = -1;
 	}
 
-<<<<<<< HEAD
-	size = snprintf(buf, sizeof(buf), "%s.present %d\n%s.correct %d\n"
-			"%s.reset %d\n%s.irq %d\n",
-			data->debugfs_name, data->present,
-			data->debugfs_name, data->correct,
-			data->debugfs_name, data->reset,
-			data->debugfs_name, data->irqcnt);
-	if (copy_to_user(usrbuf, buf, size)) {
-		dev_err(&data->client->dev, "%s: copy_to_user failed\n",
-			__func__);
-		return -EFAULT;
-=======
 	pdata->config_array = devm_kzalloc(dev, pdata->config_array_size *
 					sizeof(struct mxt_config_info), GFP_KERNEL);
 	if (!pdata->config_array) {
 		dev_err(dev, "Unable to allocate memory\n");
 		return -ENOMEM;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 	}
 
 	info = pdata->config_array;
@@ -5637,17 +5383,6 @@ static int mxt_parse_config(struct device *dev, struct mxt_platform_data *pdata)
 	info->wake_up_self_adcx = (u8)16;
 
 	return 0;
-<<<<<<< HEAD
-err:
-	dev_warn(&data->client->dev,
-		"%s: Creating debugfs entries failed !\n",
-		data->debugfs_name);
-	mxt_debugfs_remove(data);
-	/* mxt_debufgs_remove frees buf_raw_data field */
-	/* free(data->buf_raw_data); */
-	return -ENOMEM;
-=======
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 }
 #endif
 
@@ -5794,17 +5529,8 @@ static int mxt_probe(struct i2c_client *client,
 
 	mutex_init(&data->ts_lock);
 
-<<<<<<< HEAD
-#ifdef CONFIG_PM_SLEEP
-	error = mxt_power_hal_suspend_init(&client->dev);
-	if (error < 0)
-		dev_err(&client->dev, "Unable to register for power hal");
-	data->suspended = false;
-	mutex_init(&data->power_hal_lock);
-=======
 #ifdef CONFIG_FB
 	configure_sleep(data);
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 #endif
 
 #ifndef CONFIG_PM_SLEEP
@@ -5883,69 +5609,6 @@ static int mxt_remove(struct i2c_client *client)
 static void mxt_shutdown(struct i2c_client *client)
 {
 	struct mxt_data *data = i2c_get_clientdata(client);
-<<<<<<< HEAD
-	struct input_dev *input_dev = data->input_dev;
-	int ret;
-
-	if (!data->initialized)
-		return -EINVAL;
-
-	mutex_lock(&input_dev->mutex);
-
-	if (!data->suspended)
-		goto out;
-
-	if (data->power_hal_want_suspend)
-		goto out;
-
-	ret = gpio_request(data->pdata->gpio_reset, "atml_gpio_rst");
-	/*skip this error, since GPIO-ACPI module will not release it*/
-	if (ret)
-		dev_info(&client->dev, "Can't request reset gpio\n");
-
-	if (input_dev->users) {
-		mxt_start(data);
-		data->late_start = false;
-	} else {
-		data->late_start = true;
-	}
-	data->suspended = false;
-	dev_info(&client->dev, "mxt_resume complete\n");
-out:
-	mutex_unlock(&input_dev->mutex);
-
-	return 0;
-}
-
-static ssize_t mxt_power_hal_suspend_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-	struct mxt_data *data = i2c_get_clientdata(client);
-
-	return sprintf(buf, "%s\n",
-		data->power_hal_want_suspend ? "suspend" : "resume");
-}
-
-static ssize_t mxt_power_hal_suspend_store(struct device *dev,
-						 struct device_attribute *attr,
-						 const char *buf, size_t count)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-
-	if (!strncmp(buf, POWER_HAL_SUSPEND_ON,
-		     POWER_HAL_SUSPEND_STATUS_LEN))
-		mxt_power_hal_suspend(dev);
-	else
-		mxt_power_hal_resume(dev);
-
-	return count;
-}
-
-static int mxt_power_hal_suspend_init(struct device *dev)
-{
-	return register_power_hal_suspend_device(dev);
-=======
 
 	mxt_disable_irq(data);
 	data->state = SHUTDOWN;
@@ -5964,43 +5627,10 @@ static int mxt_ts_suspend(struct device *dev)
 	}
 
 	return 0;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 }
 
 static int mxt_ts_resume(struct device *dev)
 {
-<<<<<<< HEAD
-	unregister_power_hal_suspend_device(dev);
-}
-
-static void mxt_power_hal_suspend(struct device *dev)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-	struct mxt_data *data = i2c_get_clientdata(client);
-
-	mutex_lock(&data->power_hal_lock);
-	if (data->power_hal_want_suspend)
-		goto out;
-	mxt_suspend(dev);
-	data->power_hal_want_suspend = true;
-out:
-	mutex_unlock(&data->power_hal_lock);
-}
-
-static void mxt_power_hal_resume(struct device *dev)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-	struct mxt_data *data = i2c_get_clientdata(client);
-
-	mutex_lock(&data->power_hal_lock);
-
-	if (!data->power_hal_want_suspend)
-		goto out;
-	data->power_hal_want_suspend = false;
-	mxt_resume(dev);
-out:
-	mutex_unlock(&data->power_hal_lock);
-=======
 	struct mxt_data *data =  dev_get_drvdata(dev);
 
 	if (device_may_wakeup(dev) &&
@@ -6011,7 +5641,6 @@ out:
 	}
 
 	return 0;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 }
 
 static const struct dev_pm_ops mxt_touchscreen_pm_ops = {

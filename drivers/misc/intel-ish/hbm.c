@@ -603,11 +603,8 @@ void heci_hbm_dispatch(struct heci_device *dev, struct heci_bus_message *hdr)
 	struct hbm_host_enum_response *enum_res;
 	struct heci_msg_hdr heci_hdr;
 	unsigned char data[4];	/* All HBM messages are 4 bytes */
-<<<<<<< HEAD:drivers/misc/intel-ish/hbm.c
 	struct dma_alloc_notify   dma_alloc_notify;
 	struct dma_xfer_hbm     *dma_xfer;
-=======
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/hbm.c
 
 	heci_msg = hdr;
 	dev_dbg(&dev->pdev->dev, "bus cmd = %lu\n", heci_msg->hbm_cmd);

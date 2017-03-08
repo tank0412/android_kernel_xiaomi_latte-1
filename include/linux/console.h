@@ -152,7 +152,6 @@ extern int console_trylock(void);
 extern void console_unlock(void);
 extern void console_conditional_schedule(void);
 extern void console_unblank(void);
-extern void console_flush_on_panic(void);
 
 void console_suspend_slow(void);
 void console_restore_slow(void);

@@ -2,7 +2,6 @@
  * User-mode HECI API
  *
  * Copyright (c) 2015, Intel Corporation.
- * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,

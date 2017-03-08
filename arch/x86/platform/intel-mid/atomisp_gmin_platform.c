@@ -89,8 +89,6 @@ struct gmin_subdev {
 	struct gpio_desc *gpio1;
 	struct regulator *v1p8_reg;
 	struct regulator *v2p8_reg;
-	struct regulator *v1p2_reg;
-	struct regulator *vprog4d_reg;
 	enum atomisp_camera_port csi_port;
 	unsigned int csi_lanes;
 	enum atomisp_input_format csi_fmt;
@@ -518,8 +516,6 @@ int atomisp_gmin_remove_subdev(struct v4l2_subdev *sd)
 			if (pmic_id == PMIC_REGULATOR) {
 				regulator_put(gmin_subdevs[i].v1p8_reg);
 				regulator_put(gmin_subdevs[i].v2p8_reg);
-				regulator_put(gmin_subdevs[i].v1p2_reg);
-				regulator_put(gmin_subdevs[i].vprog4d_reg);
 			}
 			gmin_subdevs[i].subdev = NULL;
 		}
@@ -665,7 +661,7 @@ static struct gmin_subdev *gmin_subdev_add(struct v4l2_subdev *subdev)
 
 	dev = client ? &client->dev : NULL;
 
-	for (i = 0; i < MAX_SUBDEVS && gmin_subdevs[i].subdev; i++)
+	for (i=0; i < MAX_SUBDEVS && gmin_subdevs[i].subdev; i++)
 		;
 	if (i >= MAX_SUBDEVS)
 		return NULL;
@@ -678,7 +674,6 @@ static struct gmin_subdev *gmin_subdev_add(struct v4l2_subdev *subdev)
 	dev_info(dev, "suddev name = %s", subdev->name);
 
 	gmin_subdevs[i].subdev = subdev;
-<<<<<<< HEAD
 
 #ifdef CONFIG_VIDEO_CAMERA_PLUG_AND_PLAY
 	/* Clk Num:
@@ -755,23 +750,6 @@ static struct gmin_subdev *gmin_subdev_add(struct v4l2_subdev *subdev)
 	gmin_subdevs[i].fldo2_sel_reg    = FLDO2_SEL_REG;
 	gmin_subdevs[i].fldo2_ctrl_shift = FLDO2_CTRL_SHIFT;
 
-=======
-	dev_info(dev, "suddev name = %s", subdev->name);
-	if (0 == strcmp(subdev->name, "t4ka3 3-0037")) {
-		gmin_subdevs[i].clock_num = 0;
-		gmin_subdevs[i].clock_src = 0;
-		gmin_subdevs[i].csi_port = 1;
-		gmin_subdevs[i].csi_lanes = 4;
-	} else {
-		gmin_subdevs[i].clock_num = 1;
-		gmin_subdevs[i].clock_src = 0;
-		gmin_subdevs[i].csi_port = 0;
-		gmin_subdevs[i].csi_lanes = 2;
-
-	}
-	gmin_subdevs[i].gpio0 = gpiod_get_index(dev, "cam_gpio0", 0);
-	gmin_subdevs[i].gpio1 = gpiod_get_index(dev, "cam_gpio1", 1);
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 	if (!IS_ERR(gmin_subdevs[i].gpio0)) {
 		dev_err(dev, "gmin_subdev_add gpio0 is ok.\n");
 		ret = gpiod_direction_output(gmin_subdevs[i].gpio0, 0);
@@ -795,8 +773,6 @@ static struct gmin_subdev *gmin_subdev_add(struct v4l2_subdev *subdev)
 	if (pmic_id == PMIC_REGULATOR) {
 		gmin_subdevs[i].v1p8_reg = regulator_get(dev, "V1P8SX");
 		gmin_subdevs[i].v2p8_reg = regulator_get(dev, "V2P8SX");
-		gmin_subdevs[i].v1p2_reg = regulator_get(dev, "V1P2SX");
-		gmin_subdevs[i].vprog4d_reg = regulator_get(dev, "VPROG4D");
 
 		/* Note: ideally we would initialize v[12]p8_on to the
 		 * output of regulator_is_enabled(), but sadly that
@@ -1027,15 +1003,10 @@ int gmin_v1p8_ctrl(struct v4l2_subdev *subdev, int on)
 		gpio_set_value(v1p8_gpio, on);
 
 	if (gs->v1p8_reg) {
-		if (on) {
-			ret = regulator_enable(gs->v1p2_reg);
-			ret = regulator_enable(gs->v1p8_reg);
-			return ret;
-		} else {
-			ret = regulator_disable(gs->v1p2_reg);
-			ret = regulator_disable(gs->v1p8_reg);
-			return ret;
-		}
+		if (on)
+			return regulator_enable(gs->v1p8_reg);
+		else
+			return regulator_disable(gs->v1p8_reg);
 	}
 
 	if (pmic_id == PMIC_AXP) {
@@ -1104,15 +1075,10 @@ int gmin_v2p8_ctrl(struct v4l2_subdev *subdev, int on)
 		gpio_set_value(v2p8_gpio, on);
 
 	if (gs->v2p8_reg) {
-		if (on) {
-			ret = regulator_enable(gs->vprog4d_reg);
-			ret = regulator_enable(gs->v2p8_reg);
-			return ret;
-		} else {
-			ret = regulator_disable(gs->vprog4d_reg);
-			ret = regulator_disable(gs->v2p8_reg);
-			return ret;
-		};
+		if (on)
+			return regulator_enable(gs->v2p8_reg);
+		else
+			return regulator_disable(gs->v2p8_reg);
 	}
 
 	if (pmic_id == PMIC_AXP) {

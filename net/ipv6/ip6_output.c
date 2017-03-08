@@ -55,6 +55,8 @@
 #include <net/xfrm.h>
 #include <net/checksum.h>
 #include <linux/mroute6.h>
+#include <net/ip.h>
+
 
 static int ip6_finish_output2(struct sk_buff *skb)
 {
@@ -70,7 +72,7 @@ static int ip6_finish_output2(struct sk_buff *skb)
 	if (ipv6_addr_is_multicast(&ipv6_hdr(skb)->daddr)) {
 		struct inet6_dev *idev = ip6_dst_idev(skb_dst(skb));
 
-		if (!(dev->flags & IFF_LOOPBACK) && sk_mc_loop(skb->sk) &&
+		if (!(dev->flags & IFF_LOOPBACK) &&
 		    ((mroute6_socket(dev_net(dev), skb) &&
 		     !(IP6CB(skb)->flags & IP6SKB_FORWARDED)) ||
 		     ipv6_chk_mcast_addr(dev, &ipv6_hdr(skb)->daddr,

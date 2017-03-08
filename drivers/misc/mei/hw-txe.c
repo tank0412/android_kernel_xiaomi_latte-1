@@ -2,7 +2,6 @@
  *
  * Intel Management Engine Interface (Intel MEI) Linux driver
  * Copyright (c) 2013-2014, Intel Corporation.
- * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -198,15 +197,10 @@ static u32 mei_txe_aliveness_get(struct mei_device *dev)
 	return reg & HICR_HOST_ALIVENESS_RESP_ACK;
 }
 
-<<<<<<< HEAD
 static inline bool ktime_before(const ktime_t cmp1, const ktime_t cmp2)
 {
 	return ktime_compare(cmp1, cmp2) < 0;
 }
-=======
-
-#define SEC_AVLIVENESS_WAIT_TIMEOUT (1*MSEC_PER_SEC)
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 
 /**
  * mei_txe_aliveness_poll - waits for aliveness to settle
@@ -215,12 +209,8 @@ static inline bool ktime_before(const ktime_t cmp1, const ktime_t cmp2)
  * @expected: expected aliveness value
  *
  * Polls for HICR_HOST_ALIVENESS_RESP.ALIVENESS_RESP to be set
-<<<<<<< HEAD
  *
  * Return: 0 if the expected value was received, -ETIME otherwise
-=======
- * returns: 0 if the expected value was received, -ETIME otherwise
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
  */
 static int mei_txe_aliveness_poll(struct mei_device *dev, u32 expected)
 {
@@ -228,30 +218,18 @@ static int mei_txe_aliveness_poll(struct mei_device *dev, u32 expected)
 	ktime_t stop, start;
 
 	start = ktime_get();
-<<<<<<< HEAD
 	stop = ktime_add(start, ms_to_ktime(SEC_ALIVENESS_WAIT_TIMEOUT));
-=======
-	stop = ktime_add(start, ms_to_ktime(SEC_AVLIVENESS_WAIT_TIMEOUT));
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 	do {
 		hw->aliveness = mei_txe_aliveness_get(dev);
 		if (hw->aliveness == expected) {
 			dev->pg_event = MEI_PG_EVENT_IDLE;
 			dev_dbg(&dev->pdev->dev,
 				"aliveness settled after %lld usecs\n",
-<<<<<<< HEAD
 				ktime_to_us(ktime_sub(ktime_get(), start)));
 			return 0;
 		}
 		usleep_range(20, 50);
 	} while (ktime_before(ktime_get(), stop));
-=======
-			ktime_to_us(ktime_sub(ktime_get(), start)));
-			return 0;
-		}
-		usleep_range(20, 50);
-	} while (ktime_compare(ktime_get(), stop) < 0);
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 
 	dev->pg_event = MEI_PG_EVENT_IDLE;
 	dev_err(&dev->pdev->dev, "aliveness timed out\n");

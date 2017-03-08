@@ -2,7 +2,6 @@
  * pmic_ccsm.c - Intel MID PMIC Charger Driver
  *
  * Copyright (C) 2011 Intel Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
@@ -45,7 +44,6 @@
 #include <linux/sysfs.h>
 #include <linux/miscdevice.h>
 #include "intel_pmic_ccsm.h"
-#include <linux/usb/otg.h>
 
 /* Macros */
 #define DRIVER_NAME "pmic_ccsm"
@@ -433,6 +431,12 @@ static int pmic_ccsm_suspend(struct device *dev)
 {
 	int ret;
 
+	/* Disable CHGDIS pin */
+	ret = intel_soc_pmic_update(chc.reg_map->pmic_chgdisctrl,
+			CHGDISFN_DIS_CCSM_VAL, CHGDISFN_CCSM_MASK);
+	if (ret)
+		dev_warn(chc.dev, "Error writing to register: %x\n",
+			chc.reg_map->pmic_chgdisctrl);
 
 	return ret;
 }
@@ -441,7 +445,12 @@ static int pmic_ccsm_resume(struct device *dev)
 {
 	int ret;
 
-
+	/* Enable CHGDIS pin */
+	ret = intel_soc_pmic_update(chc.reg_map->pmic_chgdisctrl,
+			CHGDISFN_EN_CCSM_VAL, CHGDISFN_CCSM_MASK);
+	if (ret)
+		dev_warn(chc.dev, "Error writing to register: %x\n",
+			chc.reg_map->pmic_chgdisctrl);
 
 	return ret;
 }
@@ -1026,11 +1035,7 @@ static void handle_pwrsrc_interrupt(u16 int_reg, u16 stat_reg)
 {
 	int mask;
 	u16 id_mask;
-<<<<<<< HEAD
 	struct power_supply_cable_props dcin_cable;
-=======
-	struct power_supply_cable_props cap;
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 
 	id_mask = BIT_POS(PMIC_INT_USBIDFLTDET) |
 				 BIT_POS(PMIC_INT_USBIDGNDDET);
@@ -1044,7 +1049,6 @@ static void handle_pwrsrc_interrupt(u16 int_reg, u16 stat_reg)
 		if (mask) {
 			pmic_write_reg(chc.reg_map->pmic_usbphyctrl, 0x1);
 			if (chc.vbus_state == VBUS_ENABLE) {
-				chc.otg_mode_enabled = true;
 				if (chc.otg->set_vbus)
 					chc.otg->set_vbus(chc.otg, true);
 				atomic_notifier_call_chain(&chc.otg->notifier,
@@ -1063,7 +1067,6 @@ static void handle_pwrsrc_interrupt(u16 int_reg, u16 stat_reg)
 					chc.otg->set_vbus(chc.otg, false);
 				atomic_notifier_call_chain(&chc.otg->notifier,
 						USB_EVENT_NONE, NULL);
-				chc.otg_mode_enabled = false;
 			}
 			pmic_write_reg(chc.reg_map->pmic_usbphyctrl, 0x0);
 
@@ -1080,14 +1083,10 @@ static void handle_pwrsrc_interrupt(u16 int_reg, u16 stat_reg)
 	}
 	mutex_unlock(&pmic_lock);
 
-	/* According to the PMIC SPEC, we can detect the VBUS interrupt,
-	 * when insert/remove usb */
 	if (int_reg & BIT_POS(PMIC_INT_VBUS)) {
 		int ret;
 		mask = !!(stat_reg & BIT_POS(PMIC_INT_VBUS));
-
 		if (mask) {
-<<<<<<< HEAD
 			dev_info(chc.dev,
 				"USB VBUS Detected. Notifying OTG driver\n");
 			mutex_lock(&pmic_lock);
@@ -1118,25 +1117,6 @@ static void handle_pwrsrc_interrupt(u16 int_reg, u16 stat_reg)
 		mutex_lock(&pmic_lock);
 		intel_pmic_handle_otgmode(chc.host_cable_state);
 		mutex_unlock(&pmic_lock);
-=======
-			if (!chc.is_internal_usb_phy && !chc.otg_mode_enabled)
-				dev_err(chc.dev, "USB VBUS Detected. \n");
-		} else {
-			if (!chc.is_internal_usb_phy && !chc.otg_mode_enabled) {
-				cap.ma = 0;
-				cap.chrg_type = POWER_SUPPLY_CHARGER_TYPE_USB_DCP;
-				cap.chrg_evt = POWER_SUPPLY_CHARGER_EVENT_DISCONNECT;
-				atomic_notifier_call_chain(&chc.otg->notifier,
-				USB_EVENT_CHARGER, &cap);
-				cap.ma = 0;
-				cap.chrg_type = POWER_SUPPLY_CHARGER_TYPE_USB_SDP;
-				cap.chrg_evt = POWER_SUPPLY_CHARGER_EVENT_DISCONNECT;
-				atomic_notifier_call_chain(&chc.otg->notifier,
-				USB_EVENT_CHARGER, &cap);
-				dev_err(chc.dev, "USB VBUS Removed. \n");
-			}
-		}
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2
 	}
 
 	if (int_reg & BIT_POS(PMIC_INT_DCIN)) {

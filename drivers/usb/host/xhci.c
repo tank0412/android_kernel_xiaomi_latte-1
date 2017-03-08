@@ -87,8 +87,6 @@ void xhci_quiesce(struct xhci_hcd *xhci)
 	u32 halted;
 	u32 cmd;
 	u32 mask;
-	u32 i;
-	u32 cmdread;
 
 	mask = ~(XHCI_IRQS);
 	halted = readl(&xhci->op_regs->status) & STS_HALT;
@@ -97,20 +95,6 @@ void xhci_quiesce(struct xhci_hcd *xhci)
 
 	cmd = readl(&xhci->op_regs->command);
 	cmd &= mask;
-	if(1 == halted && cmd != 0)
-	{
-		cmd = 0;
-		for(i = 0;i < 50;i ++)
-		{
-			writel(cmd, &xhci->op_regs->command);
-			mdelay(200);
-			cmdread = readl(&xhci->op_regs->command);
-			if(0 == cmdread)
-			{
-				break;
-			}	
-		}
-	}
 	writel(cmd, &xhci->op_regs->command);
 }
 
@@ -136,7 +120,6 @@ int xhci_halt(struct xhci_hcd *xhci)
 	} else
 		xhci_warn(xhci, "Host not halted after %u microseconds.\n",
 				XHCI_MAX_HALT_USEC);
-	mdelay(20);
 	return ret;
 }
 
@@ -183,9 +166,6 @@ int xhci_reset(struct xhci_hcd *xhci)
 	u32 state;
 	int ret, i;
 
-	int j=0;
-	int retval,retval2;
-
 	/* Disable PIPE 4.1 synchronous phystatus */
 	if (xhci->quirks & XHCI_PIPE_4_1_SYNC_PHYSTAT_TOGGLE)
 		xhci_intel_pipe_sync_phystatus_quirk(xhci, true);
@@ -202,31 +182,10 @@ int xhci_reset(struct xhci_hcd *xhci)
 	writel(command, &xhci->op_regs->command);
 
 	ret = xhci_handshake(xhci, &xhci->op_regs->command,
-			CMD_RESET, 0, 1000);
+			CMD_RESET, 0, 10 * 1000 * 1000);
 	if (ret)
-	{
-		printk("%s:In usb controller  halt and reset procedure.\n",__func__);
-		for(j=0;j < 10;j++)
-		{
-			retval = xhci_halt(xhci);
-			if(retval)  
-			{
-				continue;
-			}
-			mdelay(200);
-			writel(command, &xhci->op_regs->command);
-			retval2 = xhci_handshake(xhci, &xhci->op_regs->command,
-			CMD_RESET, 0, 1000);
-			if(retval2 == 0)
-			{
-				goto normal_process;
-			}
-		}
-		ret = 0;
-		goto normal_process;
-	}
-	
-normal_process:
+		return ret;
+
 	xhci_dbg_trace(xhci, trace_xhci_dbg_init,
 			 "Wait for controller to be ready for doorbell rings");
 	/*
@@ -2144,7 +2103,6 @@ static unsigned int xhci_get_block_size(struct usb_device *udev)
 	case USB_SPEED_HIGH:
 		return HS_BLOCK;
 	case USB_SPEED_SUPER:
-	case USB_SPEED_SUPER_PLUS:
 		return SS_BLOCK;
 	case USB_SPEED_UNKNOWN:
 	case USB_SPEED_WIRELESS:
@@ -2270,7 +2228,7 @@ static int xhci_check_bw_table(struct xhci_hcd *xhci,
 	unsigned int packets_remaining = 0;
 	unsigned int i;
 
-	if (virt_dev->udev->speed >= USB_SPEED_SUPER)
+	if (virt_dev->udev->speed == USB_SPEED_SUPER)
 		return xhci_check_ss_bw(xhci, virt_dev);
 
 	if (virt_dev->udev->speed == USB_SPEED_HIGH) {
@@ -2471,7 +2429,7 @@ void xhci_drop_ep_from_interval_table(struct xhci_hcd *xhci,
 	if (xhci_is_async_ep(ep_bw->type))
 		return;
 
-	if (udev->speed >= USB_SPEED_SUPER) {
+	if (udev->speed == USB_SPEED_SUPER) {
 		if (xhci_is_sync_in_ep(ep_bw->type))
 			xhci->devs[udev->slot_id]->bw_table->ss_bw_in -=
 				xhci_get_ss_bw_consumed(ep_bw);
@@ -2509,7 +2467,6 @@ void xhci_drop_ep_from_interval_table(struct xhci_hcd *xhci,
 		interval_bw->overhead[HS_OVERHEAD_TYPE] -= 1;
 		break;
 	case USB_SPEED_SUPER:
-	case USB_SPEED_SUPER_PLUS:
 	case USB_SPEED_UNKNOWN:
 	case USB_SPEED_WIRELESS:
 		/* Should never happen because only LS/FS/HS endpoints will get
@@ -2569,7 +2526,6 @@ static void xhci_add_ep_to_interval_table(struct xhci_hcd *xhci,
 		interval_bw->overhead[HS_OVERHEAD_TYPE] += 1;
 		break;
 	case USB_SPEED_SUPER:
-	case USB_SPEED_SUPER_PLUS:
 	case USB_SPEED_UNKNOWN:
 	case USB_SPEED_WIRELESS:
 		/* Should never happen because only LS/FS/HS endpoints will get

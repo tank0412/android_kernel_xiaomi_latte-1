@@ -2,7 +2,6 @@
  * Most HECI provider device and HECI logic declarations
  *
  * Copyright (c) 2003-2015, Intel Corporation.
- * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -281,11 +280,7 @@ void heci_device_init(struct heci_device *dev);
 void heci_reset(struct heci_device *dev, int interrupts);
 int heci_start(struct heci_device *dev);
 void heci_stop(struct heci_device *dev);
-<<<<<<< HEAD:drivers/misc/intel-ish/heci_dev.h
 void	heci_device_disable(struct heci_device *dev);
-=======
-void heci_device_disable(struct heci_device *dev);
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/heci_dev.h
 
 static inline unsigned long heci_secs_to_jiffies(unsigned long sec)
 {
@@ -301,21 +296,12 @@ static inline void heci_hw_config(struct heci_device *dev)
 }
 
 static inline int heci_ipc_reset(struct heci_device *dev)
-<<<<<<< HEAD:drivers/misc/intel-ish/heci_dev.h
 {
 	return dev->ops->ipc_reset(dev);
 }
 
 static inline int heci_hw_reset(struct heci_device *dev)
 {
-=======
-{
-	return dev->ops->ipc_reset(dev);
-}
-
-static inline int heci_hw_reset(struct heci_device *dev)
-{
->>>>>>> 78fbd35... Kernel: Xiaomi kernel changes for MI PAD2:drivers/misc/heci/heci_dev.h
 	return dev->ops->hw_reset(dev);
 }
 
